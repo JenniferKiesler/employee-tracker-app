@@ -11,6 +11,7 @@ const connection = mysql.createConnection({
 })
 
 let departmentID = 5
+let roleID = 9
 
 const viewDepartments = async () => {
     try {
@@ -74,6 +75,45 @@ const addDepartment = async () => {
         console.log("Department was added!")
 
         departmentID++
+
+        menuPrompt()
+
+    } catch(err) {
+        throw new Error(err)
+    }
+}
+
+const addRole = async () => {
+    const answer = await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'title',
+            message: 'What is the name of the role?'
+        },
+        {
+            type: 'number',
+            name: 'salary',
+            message: 'What is the salary of the role?'
+        },
+        {
+            type: 'input',
+            name: 'department',
+            message: 'Which department does the role belong to?'
+        },
+    ])
+
+    try {
+        const [result] = await connection.promise().query('SELECT id FROM department WHERE name = ?', [answer.department])
+        
+        await connection.promise().query(`
+        INSERT INTO role (id, title, salary) VALUES (?, ?, ?)`, [roleID, answer.title, answer.salary])
+
+        await connection.promise().query(`
+        UPDATE role SET department_id = ? WHERE id = ?`, [result, roleID])
+
+        console.log("Role was added!")
+
+        roleID++
 
         menuPrompt()
 
