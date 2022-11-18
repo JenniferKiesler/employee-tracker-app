@@ -10,6 +10,17 @@ const connection = mysql.createConnection({
     database: process.env.DB_NAME
 })
 
+const viewDepartments = async () => {
+    try {
+        const [results] = await connection.promise().query('SELECT * FROM department')
+        
+        console.table(results)
+
+    } catch(err) {
+        throw new Error(err)
+    }
+}
+
 const menuPrompt = async () => {
     const answer = await inquirer.prompt([
         {
