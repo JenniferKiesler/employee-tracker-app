@@ -16,6 +16,8 @@ const viewDepartments = async () => {
 
         console.table(results)
 
+        menuPrompt()
+
     } catch(err) {
         throw new Error(err)
     }
@@ -26,6 +28,29 @@ const viewRoles = async () => {
         const [results] = await connection.promise().query('SELECT role.id, role.title, department.name AS department, role.salary FROM role INNER JOIN department ON role.department_id=department.id')
         
         console.table(results)
+
+        menuPrompt()
+
+    } catch(err) {
+        throw new Error(err)
+    }
+}
+
+const viewEmployees = async () => {
+    try {
+        const [results] = await connection.promise().query(`
+        SELECT A.id, A.first_name, A.last_name, role.title, department.name AS department, role.salary, CONCAT(B.first_name, ' ', B.last_name) AS manager 
+        FROM employee A
+        LEFT JOIN employee B 
+        ON A.manager_id=B.id
+        INNER JOIN role 
+        ON A.role_id=role.id
+        INNER JOIN department
+        ON role.department_id=department.id`)
+        
+        console.table(results)
+
+        menuPrompt()
 
     } catch(err) {
         throw new Error(err)
