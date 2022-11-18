@@ -13,6 +13,17 @@ const connection = mysql.createConnection({
 const viewDepartments = async () => {
     try {
         const [results] = await connection.promise().query('SELECT * FROM department')
+
+        console.table(results)
+
+    } catch(err) {
+        throw new Error(err)
+    }
+}
+
+const viewRoles = async () => {
+    try {
+        const [results] = await connection.promise().query('SELECT role.id, role.title, department.name AS department, role.salary FROM role INNER JOIN department ON role.department_id=department.id')
         
         console.table(results)
 
