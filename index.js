@@ -10,6 +10,8 @@ const connection = mysql.createConnection({
     database: process.env.DB_NAME
 })
 
+let departmentID = 5
+
 const viewDepartments = async () => {
     try {
         const [results] = await connection.promise().query('SELECT * FROM department')
@@ -49,6 +51,29 @@ const viewEmployees = async () => {
         ON role.department_id=department.id`)
         
         console.table(results)
+
+        menuPrompt()
+
+    } catch(err) {
+        throw new Error(err)
+    }
+}
+
+const addDepartment = async () => {
+    const answer = await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'name',
+            message: 'What is the name of the department?'
+        }
+    ])
+
+    try {
+        await connection.promise().query(`
+        INSERT INTO department (id, name) VALUES (?, ?)`, [departmentID, answer.name])
+        console.log("Department was added!")
+
+        departmentID++
 
         menuPrompt()
 
