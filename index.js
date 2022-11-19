@@ -96,20 +96,21 @@ const addRole = async () => {
             message: 'What is the salary of the role?'
         },
         {
-            type: 'input',
+            type: 'list',
             name: 'department',
-            message: 'Which department does the role belong to?'
+            message: 'Which department does the role belong to?',
+            choices: async () => {
+                const [results] = await connection.promise().query('SELECT name FROM department')
+                return results
+            }
         },
     ])
 
     try {
         const [result] = await connection.promise().query('SELECT id FROM department WHERE name = ?', [answer.department])
-        
+                
         await connection.promise().query(`
-        INSERT INTO role (id, title, salary) VALUES (?, ?, ?)`, [roleID, answer.title, answer.salary])
-
-        await connection.promise().query(`
-        UPDATE role SET department_id = ? WHERE id = ?`, [result, roleID])
+        INSERT INTO role (id, title, salary, department_id) VALUES (?, ?, ?, ?)`, [roleID, answer.title, answer.salary, result[0].id])
 
         console.log("Role was added!")
 
