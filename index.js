@@ -310,7 +310,51 @@ const updateEmployeeManager = async () => {
 }
 
 const viewEmployeesByManager = async () => {
-
+    connection.query(`SELECT first_name, last_name FROM employee`, async (err, res) => {
+        const answer = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'manager',
+                message: "Which manager do you want to use to view the employees?",
+                choices: () => {
+                    let managerList = []
+                    
+                    for (let i = 0; i < res.length; i++) {
+                        if (res[i].first_name != null || res[i].last_name != null) {
+                            let managerName = `${res[i].first_name} ${res[i].last_name}`
+                            
+                            managerList.push(managerName)
+                        }
+                    }
+                    return managerList
+                }
+            },
+        ])
+    
+        try {
+            const managerArray = answer.manager.split(' ')
+            
+            const [managerResult] = await connection.promise().query(`SELECT id FROM employee WHERE first_name = ? AND last_name = ?`, [managerArray[0], managerArray[1]])
+                
+            const [results] = await connection.promise().query(`
+            SELECT A.id, A.first_name, A.last_name, role.title, department.name AS department, role.salary, CONCAT(B.first_name, ' ', B.last_name) AS manager 
+            FROM employee A
+            LEFT JOIN employee B 
+            ON A.manager_id=B.id
+            INNER JOIN role 
+            ON A.role_id=role.id
+            INNER JOIN department
+            ON role.department_id=department.id
+            WHERE A.manager_id = ?`, [managerResult[0].id])
+            
+            console.table(results)
+    
+            menuPrompt()
+    
+        } catch(err) {
+            throw new Error(err)
+        }
+    })
 }
 
 const viewEmployeesByDepartment = async () => {
