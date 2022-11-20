@@ -244,13 +244,94 @@ const updateEmployeeRole = async () => {
     })
 }
 
+const updateEmployeeManager = async () => {
+    connection.query(`SELECT first_name, last_name FROM employee`, async (err, res) => {
+        const answer = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'employee',
+                message: "Which employee's manager do you want to update?",
+                choices: () => {
+                    let employeeList = []
+                    
+                    for (let i = 0; i < res.length; i++) {
+                        if (res[i].first_name != null || res[i].last_name != null) {
+                            let employeeName = `${res[i].first_name} ${res[i].last_name}`
+                            
+                            employeeList.push(employeeName)
+                        }
+                    }
+                    return employeeList
+                }
+            },
+            {
+                type: 'list',
+                name: 'manager',
+                message: "Which manager do you want to assign the selected employee?",
+                choices: () => {
+                    let managerList = ['None']
+                    
+                    for (let i = 0; i < res.length; i++) {
+                        if (res[i].first_name != null || res[i].last_name != null) {
+                            let managerName = `${res[i].first_name} ${res[i].last_name}`
+                            
+                            managerList.push(managerName)
+                        }
+                    }
+                    return managerList
+                }
+            },
+        ])
+    
+        try {
+            const employeeArray = answer.employee.split(' ')
+            const [employeeResult] = await connection.promise().query(`SELECT id FROM employee WHERE first_name = ? AND last_name = ?`, [employeeArray[0], employeeArray[1]])
+
+            const managerArray = answer.manager.split(' ')
+            if (managerArray[0] != 'None') {
+                const [managerResult] = await connection.promise().query(`SELECT id FROM employee WHERE first_name = ? AND last_name = ?`, [managerArray[0], managerArray[1]])
+                
+                await connection.promise().query(`
+                UPDATE employee SET manager_id = ? WHERE id = ?`, [managerResult[0].id, employeeResult[0].id])
+
+            } else {
+                await connection.promise().query(`
+                UPDATE employee SET manager_id = null WHERE id = ?`, [employeeResult[0].id])
+            }
+
+            console.log(`${answer.employee}'s manager was updated!`)
+    
+            menuPrompt()
+    
+        } catch(err) {
+            throw new Error(err)
+        }
+    })
+}
+
+const viewEmployeesByManager = async () => {
+
+}
+
+const viewEmployeesByDepartment = async () => {
+
+}
+
+const deleteOption = async () => {
+
+}
+
+const totalBudget = async () => {
+
+}
+
 const menuPrompt = async () => {
     const answer = await inquirer.prompt([
         {
             type: "list",
             name: "action",
             message: "What do you want to do?",
-            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role', 'Exit']
+            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role', 'Update an employee manager', 'View employees by manager', 'View employees by department', 'Delete departments, roles, and employees', 'View the total utilized budget of a department', 'Exit']
         }
     ])
 
@@ -268,6 +349,16 @@ const menuPrompt = async () => {
         addEmployee()
     } else if (answer.action === 'Update an employee role') {
         updateEmployeeRole()
+    } else if (answer.action === 'Update an employee manager') {
+        updateEmployeeManager()
+    } else if (answer.action === 'View employees by manager') {
+        viewEmployeesByManager()
+    } else if (answer.action === 'View employees by department') {
+        viewEmployeesByDepartment()
+    } else if (answer.action === 'Delete departments, roles, and employees') {
+        deleteOption()
+    } else if (answer.action === 'View the total utilized budget of a department') {
+        totalBudget()
     } else {
         process.exit(0)
     }
