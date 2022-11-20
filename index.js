@@ -12,6 +12,7 @@ const connection = mysql.createConnection({
 
 let departmentID = 5
 let roleID = 9
+let employeeID = 9
 
 const viewDepartments = async () => {
     try {
@@ -121,6 +122,68 @@ const addRole = async () => {
     } catch(err) {
         throw new Error(err)
     }
+}
+
+const addEmployee = async () => {
+    connection.query(`SELECT role.title, employee.first_name, employee.last_name FROM role LEFT JOIN employee ON role.id = employee.role_id`, async (err, res) => {
+        const answer = await inquirer.prompt([
+            {
+                type: 'input',
+                name: 'first_name',
+                message: "What is the employee's first name?"
+            },
+            {
+                type: 'input',
+                name: 'last_name',
+                message: "What is the employee's last name?"
+            },
+            {
+                type: 'list',
+                name: 'role',
+                message: "What is the employee's role?",
+                choices: res.map(role => role.title)
+            },
+            {
+                type: 'list',
+                name: 'manager',
+                message: "What is the employee's manager?",
+                choices: () => {
+                    let managerList = ['None']
+                    
+                    for (let i = 0; i < res.length; i++) {
+                        if (res[i].first_name != null || res[i].last_name != null) {
+                            let managerName = `${res[i].first_name} ${res[i].last_name}`
+                            
+                            managerList.push(managerName)
+                        }
+                    }
+                    return managerList
+                }
+            },
+        ])
+    
+        try {
+            console.log(answer.role)
+            const [roleResult] = await connection.promise().query('SELECT id FROM role WHERE title = ?', [answer.role])
+            console.log(roleResult)
+    
+            console.log(answer.manager)
+            const [managerResult] = await connection.promise().query(`SELECT id FROM employee WHERE CONCAT(first_name, ' ', last_name) = ?`, [answer.manager])
+            console.log(managerResult)
+                    
+            await connection.promise().query(`
+            INSERT INTO employee (id, first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?, ?)`, [employeeID, answer.first_name, answer.last_name, roleResult[0].id, managerResult[0].id])
+    
+            console.log(`${answer.first_name} ${answer.last_name} was added!`)
+    
+            employeeID++
+    
+            menuPrompt()
+    
+        } catch(err) {
+            throw new Error(err)
+        }
+    })
 }
 
 const menuPrompt = async () => {
