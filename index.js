@@ -494,25 +494,16 @@ const totalBudget = async () => {
             const [departmentResult] = await connection.promise().query(`SELECT id FROM department WHERE name = ?`, [answer.department])
 
             const [results] = await connection.promise().query(`
-            SELECT A.id, A.first_name, A.last_name, role.title, department.name AS department, role.salary, CONCAT(B.first_name, ' ', B.last_name) AS manager 
-            FROM employee A
-            LEFT JOIN employee B 
-            ON A.manager_id=B.id
+            SELECT department.name AS department, SUM(role.salary) AS total_budget 
+            FROM employee
             INNER JOIN role 
-            ON A.role_id=role.id
+            ON employee.role_id=role.id
             INNER JOIN department
             ON role.department_id=department.id
             WHERE department.id = ?`, [departmentResult[0].id])
-            console.log(results)
+           
+            console.table(results)
 
-            // still need to work on this
-            const salaries = results.map(employee => employee.salary)
-            console.log(salaries)
-            const [results2] = await connection.promise().query('SELECT SUM(role.salary) AS total_budget FROM role WHERE department = ?', [departmentResult[0].id])
-            // INNER JOIN department ON role.department_id = ?
-            
-            console.table(results2)
-    
             menuPrompt()
     
         } catch(err) {
