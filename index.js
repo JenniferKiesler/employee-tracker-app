@@ -10,10 +10,6 @@ const connection = mysql.createConnection({
     database: process.env.DB_NAME
 })
 
-let departmentID = 5
-let roleID = 9
-let employeeID = 9
-
 const viewDepartments = async () => {
     try {
         const [results] = await connection.promise().query('SELECT * FROM department')
@@ -71,11 +67,14 @@ const addDepartment = async () => {
     ])
 
     try {
+        const [departmentCount] = await connection.promise().query('SELECT COUNT(id) AS count FROM department')
+        
+        let departmentID = departmentCount[0].count + 1
+
         await connection.promise().query(`
         INSERT INTO department (id, name) VALUES (?, ?)`, [departmentID, answer.name])
+        
         console.log("Department was added!")
-
-        departmentID++
 
         menuPrompt()
 
@@ -108,14 +107,16 @@ const addRole = async () => {
     ])
 
     try {
+        const [roleCount] = await connection.promise().query('SELECT COUNT(id) AS count FROM role')
+        
+        let roleID = roleCount[0].count + 1
+        
         const [result] = await connection.promise().query('SELECT id FROM department WHERE name = ?', [answer.department])
                 
         await connection.promise().query(`
         INSERT INTO role (id, title, salary, department_id) VALUES (?, ?, ?, ?)`, [roleID, answer.title, answer.salary, result[0].id])
 
         console.log("Role was added!")
-
-        roleID++
 
         menuPrompt()
 
@@ -163,22 +164,28 @@ const addEmployee = async () => {
         ])
     
         try {
-            console.log(answer.role)
+            const [employeeCount] = await connection.promise().query('SELECT COUNT(id) AS count FROM employee')
+            
+            let employeeID = employeeCount[0].count + 1
+            
             const [roleResult] = await connection.promise().query('SELECT id FROM role WHERE title = ?', [answer.role])
-            console.log(roleResult)
     
-            console.log(answer.manager)
-            const [managerResult] = await connection.promise().query(`SELECT id FROM employee WHERE CONCAT(first_name, ' ', last_name) = ?`, [answer.manager])
-            console.log(managerResult)
-                    
-            await connection.promise().query(`
-            INSERT INTO employee (id, first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?, ?)`, [employeeID, answer.first_name, answer.last_name, roleResult[0].id, managerResult[0].id])
-    
-            console.log(`${answer.first_name} ${answer.last_name} was added!`)
-    
-            employeeID++
-    
-            menuPrompt()
+            const managerArray = answer.manager.split(' ')
+            
+            if (managerArray[0] != 'None') {
+                const [managerResult] = await connection.promise().query(`SELECT id FROM employee WHERE first_name = ? AND last_name = ?`, [managerArray[0], managerArray[1]])
+                
+                await connection.promise().query(`
+                INSERT INTO employee (id, first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?, ?)`, [employeeID, answer.first_name, answer.last_name, roleResult[0].id, managerResult[0].id])
+
+            } else {
+                await connection.promise().query(`
+                INSERT INTO employee (id, first_name, last_name, role_id) VALUES (?, ?, ?, ?)`, [employeeID, answer.first_name, answer.last_name, roleResult[0].id])
+            }
+        
+                console.log(`${answer.first_name} ${answer.last_name} was added!`)
+        
+                menuPrompt()
     
         } catch(err) {
             throw new Error(err)
