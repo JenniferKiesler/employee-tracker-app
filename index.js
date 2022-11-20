@@ -193,6 +193,57 @@ const addEmployee = async () => {
     })
 }
 
+const updateEmployeeRole = async () => {
+    connection.query(`SELECT role.title, employee.first_name, employee.last_name FROM role LEFT JOIN employee ON role.id = employee.role_id`, async (err, res) => {
+        const answer = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'employee',
+                message: "Which employee's role do you want to update?",
+                choices: () => {
+                    let employeeList = []
+                    
+                    for (let i = 0; i < res.length; i++) {
+                        if (res[i].first_name != null || res[i].last_name != null) {
+                            let employeeName = `${res[i].first_name} ${res[i].last_name}`
+                            
+                            employeeList.push(employeeName)
+                        }
+                    }
+                    return employeeList
+                }
+            },
+            {
+                type: 'list',
+                name: 'role',
+                message: "Which role do you want to assign the selected employee?",
+                choices: () => {
+                    let roles = res.map(role => role.title)
+                    let rolesList = [...new Set(roles)]
+                    return rolesList
+                }
+            },
+        ])
+    
+        try {
+            const employeeArray = answer.employee.split(' ')
+            const [employeeResult] = await connection.promise().query(`SELECT id FROM employee WHERE first_name = ? AND last_name = ?`, [employeeArray[0], employeeArray[1]])
+
+            const [roleResult] = await connection.promise().query(`SELECT id FROM role WHERE title = ?`, [answer.role])
+                
+            await connection.promise().query(`
+            UPDATE employee SET role_id = ? WHERE id = ?`, [roleResult[0].id, employeeResult[0].id])
+
+            console.log(`${answer.employee}'s role was updated!`)
+    
+            menuPrompt()
+    
+        } catch(err) {
+            throw new Error(err)
+        }
+    })
+}
+
 const menuPrompt = async () => {
     const answer = await inquirer.prompt([
         {
