@@ -25,7 +25,7 @@ const viewDepartments = async () => {
 
 const viewRoles = async () => {
     try {
-        const [results] = await connection.promise().query('SELECT role.id, role.title, department.name AS department, role.salary FROM role INNER JOIN department ON role.department_id=department.id')
+        const [results] = await connection.promise().query('SELECT role.id, role.title, department.name AS department, role.salary FROM role LEFT JOIN department ON role.department_id=department.id')
         
         console.table(results)
 
@@ -43,9 +43,9 @@ const viewEmployees = async () => {
         FROM employee A
         LEFT JOIN employee B 
         ON A.manager_id=B.id
-        INNER JOIN role 
+        LEFT JOIN role 
         ON A.role_id=role.id
-        INNER JOIN department
+        LEFT JOIN department
         ON role.department_id=department.id`)
         
         console.table(results)
@@ -67,9 +67,16 @@ const addDepartment = async () => {
     ])
 
     try {
+        const [results] = await connection.promise().query('SELECT id FROM department')
+        let departmentIds = results.map(id => id.id)
+
         const [departmentCount] = await connection.promise().query('SELECT COUNT(id) AS count FROM department')
         
         let departmentID = departmentCount[0].count + 1
+        
+        while (departmentIds.includes(departmentID)) {
+            departmentID++
+        }
 
         await connection.promise().query(`
         INSERT INTO department (id, name) VALUES (?, ?)`, [departmentID, answer.name])
@@ -107,9 +114,16 @@ const addRole = async () => {
     ])
 
     try {
+        const [results] = await connection.promise().query('SELECT id FROM role')
+        let roleIds = results.map(id => id.id)
+
         const [roleCount] = await connection.promise().query('SELECT COUNT(id) AS count FROM role')
         
         let roleID = roleCount[0].count + 1
+
+        while (roleIds.includes(roleID)) {
+            roleID++
+        }
         
         const [result] = await connection.promise().query('SELECT id FROM department WHERE name = ?', [answer.department])
                 
@@ -164,9 +178,16 @@ const addEmployee = async () => {
         ])
     
         try {
+            const [results] = await connection.promise().query('SELECT id FROM employee')
+            let employeeIds = results.map(id => id.id)
+
             const [employeeCount] = await connection.promise().query('SELECT COUNT(id) AS count FROM employee')
             
             let employeeID = employeeCount[0].count + 1
+
+            while (employeeIds.includes(employeeID)) {
+                employeeID++
+            }
             
             const [roleResult] = await connection.promise().query('SELECT id FROM role WHERE title = ?', [answer.role])
     
@@ -370,7 +391,6 @@ const viewEmployeesByDepartment = async () => {
     
         try {
             const [departmentResult] = await connection.promise().query(`SELECT id FROM department WHERE name = ?`, [answer.department])
-            console.log(departmentResult)
 
             const [results] = await connection.promise().query(`
             SELECT A.id, A.first_name, A.last_name, role.title, department.name AS department, role.salary, CONCAT(B.first_name, ' ', B.last_name) AS manager 
@@ -394,7 +414,69 @@ const viewEmployeesByDepartment = async () => {
 }
 
 const deleteOption = async () => {
+        const answer = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'tableName',
+                message: 'Delete department, role, or employee?',
+                choices: ['department', 'role', 'employee']
+            },
+        ])
+            connection.query(`SELECT * FROM employee INNER JOIN role INNER JOIN department`, async (err, res) => {
+                const answer2 = await inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'name',
+                        message: `Which ${answer.tableName} do you want to delete?`,
+                        choices: () => {
+                            if (answer.tableName === 'department') {
+                                let departments = res.map(department => department.name)
+                                let departmentsList = [...new Set(departments)]
+                                return departmentsList
+                            } else if (answer.tableName === 'role') {
+                                let roles = res.map(role => role.title)
+                                let rolesList = [...new Set(roles)]
+                                return rolesList
+                            } else if (answer.tableName === 'employee') {
+                                let employeeList = []
+                                for (let i = 0; i < res.length; i++) {
+                                    if (res[i].first_name != null || res[i].last_name != null) {
+                                        let employeeName = `${res[i].first_name} ${res[i].last_name}`
+                                        if (!employeeList.includes(employeeName)) {
+                                            employeeList.push(employeeName)
+                                        }
+                                    }
+                                }
+                                return employeeList
+                            }
+                        }
+                    },
+                
+                ])
 
+                try {
+                    if (answer.tableName === 'department') {
+                        await connection.promise().query(`DELETE FROM department WHERE name = ?`, [answer2.name])
+
+                    } else if (answer.tableName === 'role') {
+                        await connection.promise().query(`DELETE FROM role WHERE title = ?`, [answer2.name])
+
+                    } else if (answer.tableName === 'employee') {
+                        const employeeArray = answer2.name.split(' ')
+
+                        await connection.promise().query(`DELETE FROM employee WHERE first_name = ? AND last_name = ?`, [employeeArray[0], employeeArray[1]])
+                    }
+        
+                    console.log(`${answer2.name} was deleted!`)
+        
+                    menuPrompt()
+        
+                } catch(err) {
+                    throw new Error(err)
+                }
+
+            })
+           
 }
 
 const totalBudget = async () => {
