@@ -20,19 +20,40 @@ The user will be able to:
 
 ## Installation
 
+To use [Inquirer](https://www.npmjs.com/package/inquirer/v/8.2.4) version 8.2.4, [MySQL2](https://www.npmjs.com/package/mysql2), [console.table](https://www.npmjs.com/package/console.table), and [dotenv](https://www.npmjs.com/package/dotenv) packages needed for this application, use the following command:
+```
+npm install
+``` 
 
+To create the database, log into MySQL and use
+```
+SOURCE db/schema.sql
+```
+
+To pre-populate the database, use
+```
+SOURCE db/seeds.sql
+```
 
 ## Usage
 
-
+This application is invoked by using the following command:
+``` 
+npm start
+```
 
 ## Visuals
 
 
 
 ## Walkthrough Video
+Use the link below to view a walkthrough of this application.
 
+
+
+If the video is blurry, download the video.
 
 
 ## Questions
 
+Feel free to contact me at jennyhawes24@gmail.com or look at my [Github](https://github.com/JenniferKiesler).
