@@ -10,6 +10,7 @@ const connection = mysql.createConnection({
     database: process.env.DB_NAME
 })
 
+// views all departments
 const viewDepartments = async () => {
     try {
         const [results] = await connection.promise().query('SELECT * FROM department')
@@ -23,6 +24,7 @@ const viewDepartments = async () => {
     }
 }
 
+// views all roles
 const viewRoles = async () => {
     try {
         const [results] = await connection.promise().query('SELECT role.id, role.title, department.name AS department, role.salary FROM role LEFT JOIN department ON role.department_id=department.id')
@@ -36,6 +38,7 @@ const viewRoles = async () => {
     }
 }
 
+// views all employees
 const viewEmployees = async () => {
     try {
         const [results] = await connection.promise().query(`
@@ -57,6 +60,7 @@ const viewEmployees = async () => {
     }
 }
 
+// adds a department
 const addDepartment = async () => {
     const answer = await inquirer.prompt([
         {
@@ -67,21 +71,25 @@ const addDepartment = async () => {
     ])
 
     try {
+        // creates an array of the department ids
         const [results] = await connection.promise().query('SELECT id FROM department')
-        let departmentIds = results.map(id => id.id)
+        let departmentIds = results.map(department => department.id)
 
+        // counts how many department ids there are
         const [departmentCount] = await connection.promise().query('SELECT COUNT(id) AS count FROM department')
         
         let departmentID = departmentCount[0].count + 1
         
+        // continues adding 1 until id is unique
         while (departmentIds.includes(departmentID)) {
             departmentID++
         }
 
+        // adds new department
         await connection.promise().query(`
         INSERT INTO department (id, name) VALUES (?, ?)`, [departmentID, answer.name])
         
-        console.log("Department was added!")
+        console.log(`${answer.name} was added!`)
 
         menuPrompt()
 
@@ -90,6 +98,7 @@ const addDepartment = async () => {
     }
 }
 
+// adds a role
 const addRole = async () => {
     const answer = await inquirer.prompt([
         {
@@ -114,23 +123,28 @@ const addRole = async () => {
     ])
 
     try {
+        // creates an array of the role ids
         const [results] = await connection.promise().query('SELECT id FROM role')
-        let roleIds = results.map(id => id.id)
-
+        let roleIds = results.map(role => role.id)
+    
+        // counts how many role ids there are
         const [roleCount] = await connection.promise().query('SELECT COUNT(id) AS count FROM role')
         
         let roleID = roleCount[0].count + 1
 
+        // continues adding 1 until id is unique
         while (roleIds.includes(roleID)) {
             roleID++
         }
         
+        // gets department id
         const [result] = await connection.promise().query('SELECT id FROM department WHERE name = ?', [answer.department])
-                
+        
+        // adds a role
         await connection.promise().query(`
         INSERT INTO role (id, title, salary, department_id) VALUES (?, ?, ?, ?)`, [roleID, answer.title, answer.salary, result[0].id])
 
-        console.log("Role was added!")
+        console.log(`${answer.title} was added!`)
 
         menuPrompt()
 
@@ -139,6 +153,7 @@ const addRole = async () => {
     }
 }
 
+// adds an employee
 const addEmployee = async () => {
     connection.query(`SELECT role.title, employee.first_name, employee.last_name FROM role LEFT JOIN employee ON role.id = employee.role_id`, async (err, res) => {
         const answer = await inquirer.prompt([
@@ -178,28 +193,36 @@ const addEmployee = async () => {
         ])
     
         try {
+            // creates an array of the employee ids
             const [results] = await connection.promise().query('SELECT id FROM employee')
-            let employeeIds = results.map(id => id.id)
+            let employeeIds = results.map(employee => employee.id)
 
+            // counts how many employee ids there are
             const [employeeCount] = await connection.promise().query('SELECT COUNT(id) AS count FROM employee')
             
             let employeeID = employeeCount[0].count + 1
 
+            // continues adding 1 until id is unique
             while (employeeIds.includes(employeeID)) {
                 employeeID++
             }
             
+            // gets role id
             const [roleResult] = await connection.promise().query('SELECT id FROM role WHERE title = ?', [answer.role])
     
+            // splits manager's name
             const managerArray = answer.manager.split(' ')
             
             if (managerArray[0] != 'None') {
+                // gets manager id
                 const [managerResult] = await connection.promise().query(`SELECT id FROM employee WHERE first_name = ? AND last_name = ?`, [managerArray[0], managerArray[1]])
                 
+                // adds employee with a manager
                 await connection.promise().query(`
                 INSERT INTO employee (id, first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?, ?)`, [employeeID, answer.first_name, answer.last_name, roleResult[0].id, managerResult[0].id])
 
             } else {
+                // adds employee without a manager
                 await connection.promise().query(`
                 INSERT INTO employee (id, first_name, last_name, role_id) VALUES (?, ?, ?, ?)`, [employeeID, answer.first_name, answer.last_name, roleResult[0].id])
             }
@@ -214,6 +237,7 @@ const addEmployee = async () => {
     })
 }
 
+// updates employee role
 const updateEmployeeRole = async () => {
     connection.query(`SELECT role.title, employee.first_name, employee.last_name FROM role LEFT JOIN employee ON role.id = employee.role_id`, async (err, res) => {
         const answer = await inquirer.prompt([
@@ -247,11 +271,14 @@ const updateEmployeeRole = async () => {
         ])
     
         try {
+            // splits employee name and gets employee id
             const employeeArray = answer.employee.split(' ')
             const [employeeResult] = await connection.promise().query(`SELECT id FROM employee WHERE first_name = ? AND last_name = ?`, [employeeArray[0], employeeArray[1]])
 
+            // gets role id
             const [roleResult] = await connection.promise().query(`SELECT id FROM role WHERE title = ?`, [answer.role])
                 
+            // updates employee role
             await connection.promise().query(`
             UPDATE employee SET role_id = ? WHERE id = ?`, [roleResult[0].id, employeeResult[0].id])
 
@@ -265,6 +292,7 @@ const updateEmployeeRole = async () => {
     })
 }
 
+// updates employee manager
 const updateEmployeeManager = async () => {
     connection.query(`SELECT first_name, last_name FROM employee`, async (err, res) => {
         const answer = await inquirer.prompt([
@@ -305,17 +333,22 @@ const updateEmployeeManager = async () => {
         ])
     
         try {
+            // splits employee name and gets employee id
             const employeeArray = answer.employee.split(' ')
             const [employeeResult] = await connection.promise().query(`SELECT id FROM employee WHERE first_name = ? AND last_name = ?`, [employeeArray[0], employeeArray[1]])
 
+            // splits manager name
             const managerArray = answer.manager.split(' ')
             if (managerArray[0] != 'None') {
+                // gets manager id
                 const [managerResult] = await connection.promise().query(`SELECT id FROM employee WHERE first_name = ? AND last_name = ?`, [managerArray[0], managerArray[1]])
                 
+                // updates employee manager with new manager
                 await connection.promise().query(`
                 UPDATE employee SET manager_id = ? WHERE id = ?`, [managerResult[0].id, employeeResult[0].id])
 
             } else {
+                // employee has no manager
                 await connection.promise().query(`
                 UPDATE employee SET manager_id = null WHERE id = ?`, [employeeResult[0].id])
             }
@@ -330,6 +363,7 @@ const updateEmployeeManager = async () => {
     })
 }
 
+// view employees by manager
 const viewEmployeesByManager = async () => {
     connection.query(`SELECT first_name, last_name FROM employee`, async (err, res) => {
         const answer = await inquirer.prompt([
@@ -353,8 +387,10 @@ const viewEmployeesByManager = async () => {
         ])
     
         try {
+            // splits manager name
             const managerArray = answer.manager.split(' ')
             
+            // gets manager id
             const [managerResult] = await connection.promise().query(`SELECT id FROM employee WHERE first_name = ? AND last_name = ?`, [managerArray[0], managerArray[1]])
                 
             const [results] = await connection.promise().query(`
@@ -378,6 +414,7 @@ const viewEmployeesByManager = async () => {
     })
 }
 
+// view employees by department
 const viewEmployeesByDepartment = async () => {
     connection.query(`SELECT name FROM department`, async (err, res) => {
         const answer = await inquirer.prompt([
@@ -390,6 +427,7 @@ const viewEmployeesByDepartment = async () => {
         ])
     
         try {
+            // gets department id
             const [departmentResult] = await connection.promise().query(`SELECT id FROM department WHERE name = ?`, [answer.department])
 
             const [results] = await connection.promise().query(`
@@ -413,6 +451,7 @@ const viewEmployeesByDepartment = async () => {
     })
 }
 
+// delete department, role, or employee
 const deleteOption = async () => {
         const answer = await inquirer.prompt([
             {
@@ -479,6 +518,7 @@ const deleteOption = async () => {
            
 }
 
+// view total utilized budget of a department
 const totalBudget = async () => {
     connection.query(`SELECT name FROM department`, async (err, res) => {
         const answer = await inquirer.prompt([
@@ -491,8 +531,10 @@ const totalBudget = async () => {
         ])
 
         try {
+            // gets department id
             const [departmentResult] = await connection.promise().query(`SELECT id FROM department WHERE name = ?`, [answer.department])
 
+            // gets the department name and the sum of all the roles' salaries in that department
             const [results] = await connection.promise().query(`
             SELECT department.name AS department, SUM(role.salary) AS total_budget 
             FROM employee
@@ -513,6 +555,7 @@ const totalBudget = async () => {
     })
 }
 
+// main menu
 const menuPrompt = async () => {
     const answer = await inquirer.prompt([
         {
