@@ -44,7 +44,7 @@ npm start
 
 ## Visuals
 
-
+![employee tracker screenshot](/images/employee-tracker-screenshot.PNG)
 
 ## Walkthrough Video
 Use the link below to view a walkthrough of this application.
