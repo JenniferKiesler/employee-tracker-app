@@ -49,7 +49,7 @@ npm start
 ## Walkthrough Video
 Use the link below to view a walkthrough of this application.
 
-
+https://drive.google.com/file/d/1ox3ieGe6NnBjD59jNkBYUjHzkmUwSclv/view?usp=sharing
 
 If the video is blurry, download the video.
 
