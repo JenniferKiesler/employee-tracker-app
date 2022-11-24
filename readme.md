@@ -25,12 +25,12 @@ To use [Inquirer](https://www.npmjs.com/package/inquirer/v/8.2.4) version 8.2.4,
 npm install
 ``` 
 
-To create the database, log into MySQL and use
+To create the database, log into MySQL Shell and use
 ```
 SOURCE db/schema.sql
 ```
 
-To pre-populate the database, use
+Then to pre-populate the database, use
 ```
 SOURCE db/seeds.sql
 ```
